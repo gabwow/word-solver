@@ -1,4 +1,4 @@
-"Takes a gtid of letters and searches for valid words"
+"Takes a grid of letters and searches for valid words"
 import gzip
 import time
 from collections import deque
