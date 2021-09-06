@@ -48,7 +48,7 @@ def test_do_not_add_already_searched_indices():
 
 def test_find_all_sequences_for_anchor():
     """Happy path test"""
-    sequences = find_sequences_at_anchor(make_test_grid(), Index(0, 0), 3)
+    sequences = find_sequences_at_anchor(make_test_grid(), Index(0, 0), defaultdict(), 3)
     assert sequences == ["abc", "abg", "abf", "abe",
                          "afb", "afc", "afg", "afk", "afj", "afi", "afe",
                          "aeb", "aef", "aej", "aei"]
@@ -56,6 +56,6 @@ def test_find_all_sequences_for_anchor():
 
 def test_at_anchor_only_find_valid_words():
     """Only words in the valid set of words get returned"""
-    words = find_all_words_at_anchor(make_test_grid(), Index(1, 1),
-                                     set(["fbcd", "fkn"]))
+    words = find_all_words_at_anchor(make_test_grid(), Index(1, 1), set(["fbcd", "fkn"]),
+                                     defaultdict())
     assert words == ["fbcd", "fkn"]

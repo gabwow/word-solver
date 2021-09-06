@@ -1,10 +1,10 @@
 "Takes a grid of letters and searches for valid words"
 import gzip
 import time
-from collections import deque
+from collections import deque, defaultdict
 from multiprocessing import Pool
 from sys import argv
-from typing import List, NamedTuple, Set
+from typing import DefaultDict, List, NamedTuple, Set
 
 
 class Index(NamedTuple):
@@ -25,18 +25,19 @@ def make_word_set(file_path: str) -> Set[str]:
     return words
 
 
-def get_valid_prefixes(file_path: str) -> Set[str]:
-    prefixes = set()
+def get_valid_prefixes(file_path: str) -> DefaultDict[int,Set[str]]:
+    prefixes = defaultdict(set)
     with open(file_path) as calculated_prefixes:
         for word_line in calculated_prefixes:
-            prefixes.add(word_line.strip())
+            word = word_line.strip()
+            prefixes[len(word)].add(word_line.strip())
     return prefixes
 
 
 def find_sequences_at_anchor(letter_grid: List[List [str]],
                              anchor_index: Index,
-                             max_word_length: int = 14,
-                             prefixes: Set[str] = None,
+                             prefixes: DefaultDict[int, Set[str]],
+                             max_word_length: int = 14
                              ) -> List[str]:
     if len(letter_grid) < 1 or len(letter_grid[0]) < 1:
         raise ValueError("The grid of letters must be at least 1x1")
@@ -47,9 +48,6 @@ def find_sequences_at_anchor(letter_grid: List[List [str]],
     current_word = ""
     word_list = []
     searched_indices = []
-    if prefixes:
-        prefix_elem = prefixes.pop()
-        prefixes.add(prefix_elem)
     while index_stack:
         index = index_stack.pop()
         searched_indices = searched_indices[: index.level - 1] + [index.index]
@@ -58,7 +56,7 @@ def find_sequences_at_anchor(letter_grid: List[List [str]],
         if len(current_word) > 2:
             word_list.append(current_word)
         if index.level < max_word_length and \
-                (not prefixes or len(current_word) != len(prefix_elem) or current_word in prefixes):
+                (len(current_word) not in prefixes or current_word in prefixes[len(current_word)]):
             neighbors = add_neighbors(max_columns,
                                       max_rows,
                                       index.index.column,
@@ -77,8 +75,8 @@ def get_all_words(sequences: List[str], valid_words: Set[str]) -> List[str]:
 def find_all_words_at_anchor(letter_grid: List[List [str]],
                              anchor_index: Index,
                              valid_words: Set[str],
-                             prefixes: Set[str] = None) -> List[str]:
-    return get_all_words(find_sequences_at_anchor(letter_grid, anchor_index, prefixes=prefixes), valid_words)
+                             prefixes: DefaultDict[int, Set[str]]) -> List[str]:
+    return get_all_words(find_sequences_at_anchor(letter_grid, anchor_index, prefixes), valid_words)
 
 
 def add_neighbors(max_columns: int,
@@ -121,7 +119,7 @@ if __name__ == "__main__":
                Index(3, 0), Index(3, 1), Index(3, 2), Index(3, 3)]
     grid = make_grid_from_string_input(argv[1])
     valid_words = make_word_set("lowercase_words.txt.gz")
-    prefixes = get_valid_prefixes("prefix_length_4.txt")
+    prefixes = get_valid_prefixes("prefixes.txt")
     inputs = [(grid, i, valid_words, prefixes) for i in indices]
     values = []
     with Pool(processes=5) as pool:
