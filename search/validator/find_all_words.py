@@ -17,6 +17,11 @@ class IndexAndLevel(NamedTuple):
     level: int
 
 
+class IndexAndWords(NamedTuple):
+    index: Index
+    words: List[str]
+
+
 def make_word_set(file_path: str) -> Set[str]:
     words = set()
     with gzip.open(file_path, "r") as all_words:
@@ -110,25 +115,39 @@ def make_grid_from_string_input(characters: str) -> List[List[str]]:
             character_list[12:16]]
 
 
-if __name__ == "__main__":
-    start_time = time.time()
+def sort_grid(unsorted_words: List[str]) -> List[IndexAndWords]:
     found_words = set()
     indices = [Index(0, 0), Index(0, 1), Index(0, 2), Index(0, 3),
                Index(1, 0), Index(1, 1), Index(1, 2), Index(1, 3),
                Index(2, 0), Index(2, 1), Index(2, 2), Index(2, 3),
                Index(3, 0), Index(3, 1), Index(3, 2), Index(3, 3)]
+    sorted_words = []
+    for i in range(len(unsorted_words)):
+        words = []
+        for word in values[i]:
+            if word not in found_words:
+                found_words.add(word)
+                words.append(word)
+        sorted_words.append(IndexAndWords(indices[i], words))
+    print(f"Found {len(found_words)} words.")
+    print(f"The longest words are {sorted([w for w in found_words], key=len, reverse=True)[0:15]}")
+    return sorted(sorted_words, key= lambda x: len(x.words))
+
+
+if __name__ == "__main__":
+    start_time = time.time()
     grid = make_grid_from_string_input(argv[1])
     valid_words = make_word_set("lowercase_words.txt.gz")
     prefixes = get_valid_prefixes("prefixes.txt")
+    indices = [Index(0, 0), Index(0, 1), Index(0, 2), Index(0, 3),
+               Index(1, 0), Index(1, 1), Index(1, 2), Index(1, 3),
+               Index(2, 0), Index(2, 1), Index(2, 2), Index(2, 3),
+               Index(3, 0), Index(3, 1), Index(3, 2), Index(3, 3)]
     inputs = [(grid, i, valid_words, prefixes) for i in indices]
-    values = []
     with Pool(processes=5) as pool:
-        values = values + pool.starmap(find_all_words_at_anchor, inputs)
-    for i in range(len(indices)):
-        print(f"\nFor index {indices[i]}:")
-        for word in values[i]:
-            if word not in found_words:
-                print(word)
-                found_words.add(word)
+        values = pool.starmap(find_all_words_at_anchor, inputs)
+    for w in sort_grid(values):
+        print(f"\nFor index {w.index}:")
+        for word in w.words:
+            print(word)
     print(f"Solved board in {time.time() - start_time} seconds.")
-    print(f"Found {len(found_words)} words.")
